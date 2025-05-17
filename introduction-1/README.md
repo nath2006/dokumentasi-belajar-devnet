@@ -1,4 +1,4 @@
-# 💬 Chat Realtime Client-Server C++ dengan Winsock
+# Chat Realtime Client-Server C++ dengan Winsock
 
 Dokumentasi ini membahas implementasi aplikasi chat real-time antara satu client dan satu server menggunakan bahasa C++ dan pustaka Winsock pada sistem operasi Windows. Materi mencakup pengantar konsep jaringan, protokol komunikasi, arsitektur OSI, port, hingga penjelasan lengkap implementasi kode.
 
@@ -102,6 +102,121 @@ Untuk menjalankan program ini di Windows:
 
 
 ---
+##  Penjelasan Kode `server.cpp`
+
+```cpp
+#include <iostream>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <string>
+#pragma comment(lib, "ws2_32.lib")
+```
+
+- `winsock2.h` dan `ws2tcpip.h` adalah header untuk menggunakan API socket di Windows.
+- `#pragma comment(lib, "ws2_32.lib")` memastikan linker menyertakan pustaka `ws2_32`.
+
+```cpp
+using namespace std;
+```
+
+- Memungkinkan penggunaan `cout`, `cin`, `string` tanpa perlu menyebut `std::`.
+
+```cpp
+int main() {
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2,2), &wsaData);
+```
+
+- Inisialisasi pustaka Winsock dengan versi 2.2 menggunakan `WSAStartup`.
+
+```cpp
+    SOCKET serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+```
+
+- Membuat socket bertipe **stream (TCP)** menggunakan IPv4 (`AF_INET`).
+
+```cpp
+    sockaddr_in serverAddr;
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_addr.s_addr = INADDR_ANY;
+    serverAddr.sin_port = htons(8080);
+```
+
+- Mengatur alamat server:
+  - `AF_INET`: IPv4
+  - `INADDR_ANY`: Terima koneksi dari semua interface
+  - `htons(8080)`: Port 8080 dalam urutan byte jaringan
+
+```cpp
+    bind(serverSocket, (sockaddr*)&serverAddr, sizeof(serverAddr));
+    listen(serverSocket, 1);
+```
+
+- `bind`: Mengikat socket ke alamat dan port.
+- `listen`: Menandakan bahwa socket siap menerima koneksi masuk. Angka `1` artinya antrean maksimal 1 koneksi.
+
+```cpp
+    cout << "Menunggu client...
+";
+```
+
+- Menampilkan status server ke terminal.
+
+```cpp
+    SOCKET clientSocket;
+    sockaddr_in clientAddr;
+    int clientSize = sizeof(clientAddr);
+    clientSocket = accept(serverSocket, (sockaddr*)&clientAddr, &clientSize);
+    cout << "Client terhubung!
+";
+```
+
+- `accept`: Menunggu koneksi dari client. Jika berhasil, membuat socket baru (`clientSocket`) untuk berkomunikasi dengan client tersebut.
+
+```cpp
+    char buffer[1024];
+    string message;
+```
+
+- Menyediakan buffer untuk menerima pesan dan string untuk mengirimkan pesan.
+
+```cpp
+    while (true) {
+        int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+        if (bytesReceived <= 0) break;
+        buffer[bytesReceived] = '\0';
+        if (strcmp(buffer, "exit") == 0) break;
+
+        cout << "Client: " << buffer << endl;
+```
+
+- Menerima pesan dari client:
+  - `recv`: Menerima data.
+  - Jika data yang diterima `"exit"`, koneksi diakhiri.
+
+```cpp
+        cout << "Server: ";
+        getline(cin, message);
+        send(clientSocket, message.c_str(), message.length(), 0);
+        if (message == "exit") break;
+    }
+```
+
+- Mengambil input dari user server dan mengirimkannya ke client.
+- Program keluar dari loop jika input adalah `"exit"`.
+
+```cpp
+    closesocket(clientSocket);
+    closesocket(serverSocket);
+    WSACleanup();
+    return 0;
+}
+```
+
+- Menutup koneksi dan membersihkan Winsock.
+
+---
+
 
 ## Penjelasan Kode `client.cpp`
 
